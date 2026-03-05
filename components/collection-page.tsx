@@ -1,0 +1,682 @@
+"use client"
+
+import { useState, useMemo } from "react"
+import Image from "next/image"
+import {
+  Search,
+  SlidersHorizontal,
+  Plus,
+  MoreVertical,
+  X,
+  Eye,
+  Trash2,
+  ArrowRightLeft,
+  Heart,
+  Check,
+} from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+
+// --- Types ---
+interface Photocard {
+  id: number
+  member: string
+  group: string
+  album: string
+  type: "Regular" | "Irregular"
+  image: string
+  inWishlist: boolean
+}
+
+// --- Mock Data ---
+const mockPhotocards: Photocard[] = [
+  { id: 1, member: "Jungkook", group: "BTS", album: "Golden", type: "Regular", image: "https://picsum.photos/seed/jk-golden/200/280", inWishlist: false },
+  { id: 2, member: "Karina", group: "aespa", album: "Whiplash", type: "Regular", image: "https://picsum.photos/seed/karina-wh/200/280", inWishlist: true },
+  { id: 3, member: "Hyunjin", group: "Stray Kids", album: "ATE", type: "Irregular", image: "https://picsum.photos/seed/hjn-ate/200/280", inWishlist: false },
+  { id: 4, member: "Wonyoung", group: "IVE", album: "SWITCH", type: "Regular", image: "https://picsum.photos/seed/wy-switch/200/280", inWishlist: false },
+  { id: 5, member: "Jennie", group: "BLACKPINK", album: "SOLO", type: "Regular", image: "https://picsum.photos/seed/jennie-bp/200/280", inWishlist: true },
+  { id: 6, member: "Felix", group: "Stray Kids", album: "ROCK-STAR", type: "Irregular", image: "https://picsum.photos/seed/felix-rs/200/280", inWishlist: false },
+  { id: 7, member: "Winter", group: "aespa", album: "Drama", type: "Regular", image: "https://picsum.photos/seed/winter-dr/200/280", inWishlist: false },
+  { id: 8, member: "Yuna", group: "ITZY", album: "BORN TO BE", type: "Regular", image: "https://picsum.photos/seed/yuna-btb/200/280", inWishlist: true },
+  { id: 9, member: "V", group: "BTS", album: "Layover", type: "Regular", image: "https://picsum.photos/seed/v-layover/200/280", inWishlist: false },
+  { id: 10, member: "Sakura", group: "LE SSERAFIM", album: "EASY", type: "Irregular", image: "https://picsum.photos/seed/sakura-ez/200/280", inWishlist: false },
+]
+
+const allGroups = [...new Set(mockPhotocards.map((c) => c.group))]
+const allAlbums = [...new Set(mockPhotocards.map((c) => c.album))]
+
+// --- Global add search data ---
+const globalPhotocards = [
+  { id: 101, member: "Jimin", group: "BTS", album: "FACE", image: "https://picsum.photos/seed/jimin-face/200/280" },
+  { id: 102, member: "Lisa", group: "BLACKPINK", album: "LALISA", image: "https://picsum.photos/seed/lisa-ll/200/280" },
+  { id: 103, member: "Ningning", group: "aespa", album: "MY WORLD", image: "https://picsum.photos/seed/nn-mw/200/280" },
+  { id: 104, member: "Bangchan", group: "Stray Kids", album: "MAXIDENT", image: "https://picsum.photos/seed/bc-max/200/280" },
+  { id: 105, member: "Kazuha", group: "LE SSERAFIM", album: "UNFORGIVEN", image: "https://picsum.photos/seed/kz-unfg/200/280" },
+  { id: 106, member: "Rei", group: "IVE", album: "I'VE MINE", image: "https://picsum.photos/seed/rei-im/200/280" },
+]
+
+// --- Sub Components ---
+
+function CollectionSkeleton() {
+  return (
+    <div className="flex flex-col gap-4">
+      <Skeleton className="h-6 w-40" />
+      <Skeleton className="h-4 w-24" />
+      <div className="grid grid-cols-2 gap-3">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="flex flex-col gap-2">
+            <Skeleton className="aspect-[5/7] w-full rounded-2xl" />
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-3 w-16" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function EmptyState({ onExplore }: { onExplore: () => void }) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16 px-6">
+      <div className="flex h-24 w-24 items-center justify-center rounded-full bg-muted">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted-foreground">
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
+        </svg>
+      </div>
+      <div className="flex flex-col items-center gap-1 text-center">
+        <h3 className="text-base font-semibold text-foreground">Sua colecao ainda esta vazia</h3>
+        <p className="text-sm text-muted-foreground">Adicione suas primeiras photocards</p>
+      </div>
+      <button
+        onClick={onExplore}
+        className="rounded-full bg-[#7B5EA7] px-6 py-2.5 text-sm font-semibold text-white transition-colors active:bg-[#6A4F91]"
+      >
+        Explorar Photocards
+      </button>
+    </div>
+  )
+}
+
+function CardContextMenu({
+  card,
+  onClose,
+  onViewDetails,
+  onRemove,
+  onToggleWishlist,
+}: {
+  card: Photocard
+  onClose: () => void
+  onViewDetails: () => void
+  onRemove: () => void
+  onToggleWishlist: () => void
+}) {
+  return (
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0" onClick={onClose} />
+      <div className="absolute bottom-0 left-0 right-0 z-10 rounded-t-3xl bg-card p-5 shadow-2xl animate-in slide-in-from-bottom duration-200">
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-muted" />
+        <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
+          <div className="relative h-12 w-9 rounded-lg overflow-hidden">
+            <Image src={card.image} alt={card.member} fill className="object-cover" crossOrigin="anonymous" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-card-foreground">{card.member}</p>
+            <p className="text-xs text-muted-foreground">{card.group} | {card.album}</p>
+          </div>
+        </div>
+        <div className="flex flex-col gap-1">
+          <button onClick={onViewDetails} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-card-foreground active:bg-muted/50">
+            <Eye className="h-4.5 w-4.5 text-muted-foreground" /> Ver detalhes
+          </button>
+          <button onClick={onRemove} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-destructive active:bg-destructive/10">
+            <Trash2 className="h-4.5 w-4.5" /> Remover da colecao
+          </button>
+          <button className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-muted-foreground opacity-60 cursor-not-allowed">
+            <ArrowRightLeft className="h-4.5 w-4.5" /> Marcar como disponivel para troca
+          </button>
+          <button onClick={onToggleWishlist} className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-card-foreground active:bg-muted/50">
+            <Heart className={`h-4.5 w-4.5 ${card.inWishlist ? "fill-[#9B2D7B] text-[#9B2D7B]" : "text-muted-foreground"}`} />
+            {card.inWishlist ? "Remover da wishlist" : "Mover para wishlist"}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function PhotocardDetail({ card, onClose, onRemove }: { card: Photocard; onClose: () => void; onRemove: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="relative flex w-full max-w-sm flex-col rounded-3xl bg-card mx-4 overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-black/40 text-white"
+          aria-label="Fechar"
+        >
+          <X className="h-4 w-4" />
+        </button>
+        <div className="relative aspect-[5/7] w-full">
+          <Image src={card.image} alt={`${card.member} - ${card.group}`} fill className="object-cover" crossOrigin="anonymous" />
+        </div>
+        <div className="flex flex-col gap-3 p-5">
+          <div>
+            <h3 className="text-lg font-bold text-card-foreground">{card.member}</h3>
+            <p className="text-sm text-muted-foreground">{card.group}</p>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Album</span>
+              <span className="text-xs font-medium text-card-foreground">{card.album}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Tipo</span>
+              <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${card.type === "Regular" ? "bg-[#7B5EA7]/10 text-[#7B5EA7]" : "bg-[#9B2D7B]/10 text-[#9B2D7B]"}`}>
+                {card.type}
+              </span>
+            </div>
+            {card.type === "Irregular" && (
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Distribuicao</span>
+                <span className="text-xs font-medium text-card-foreground">Evento Exclusivo</span>
+              </div>
+            )}
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button
+              onClick={onRemove}
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-destructive/30 py-2.5 text-sm font-semibold text-destructive active:bg-destructive/10"
+            >
+              <Trash2 className="h-4 w-4" /> Remover
+            </button>
+            <button className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-muted py-2.5 text-sm font-semibold text-muted-foreground opacity-60 cursor-not-allowed">
+              <ArrowRightLeft className="h-4 w-4" /> Troca
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function FilterPanel({
+  onClose,
+  filters,
+  onApply,
+}: {
+  onClose: () => void
+  filters: { group: string; album: string; type: string; sort: string }
+  onApply: (f: { group: string; album: string; type: string; sort: string }) => void
+}) {
+  const [localFilters, setLocalFilters] = useState(filters)
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative z-10 flex w-full max-w-lg flex-col rounded-t-3xl bg-background shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[80dvh]">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h3 className="text-lg font-bold text-foreground">Filtros</h3>
+          <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground" aria-label="Fechar">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-4 flex flex-col gap-5">
+          {/* Group filter */}
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-semibold text-foreground">Artista / Grupo</label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setLocalFilters((f) => ({ ...f, group: "" }))}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${!localFilters.group ? "bg-[#7B5EA7] text-white" : "bg-muted text-muted-foreground"}`}
+              >
+                Todos
+              </button>
+              {allGroups.map((g) => (
+                <button
+                  key={g}
+                  onClick={() => setLocalFilters((f) => ({ ...f, group: g, album: "" }))}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${localFilters.group === g ? "bg-[#7B5EA7] text-white" : "bg-muted text-muted-foreground"}`}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Album filter */}
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-semibold text-foreground">Album</label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setLocalFilters((f) => ({ ...f, album: "" }))}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${!localFilters.album ? "bg-[#7B5EA7] text-white" : "bg-muted text-muted-foreground"}`}
+              >
+                Todos
+              </button>
+              {(localFilters.group ? allAlbums.filter((a) => mockPhotocards.some((c) => c.group === localFilters.group && c.album === a)) : allAlbums).map((a) => (
+                <button
+                  key={a}
+                  onClick={() => setLocalFilters((f) => ({ ...f, album: a }))}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${localFilters.album === a ? "bg-[#7B5EA7] text-white" : "bg-muted text-muted-foreground"}`}
+                >
+                  {a}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Type filter */}
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-semibold text-foreground">Tipo</label>
+            <div className="flex gap-2">
+              {["", "Regular", "Irregular"].map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setLocalFilters((f) => ({ ...f, type: t }))}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${localFilters.type === t ? "bg-[#7B5EA7] text-white" : "bg-muted text-muted-foreground"}`}
+                >
+                  {t || "Todos"}
+                </button>
+              ))}
+            </div>
+          </div>
+          {/* Sort */}
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-semibold text-foreground">Ordenar por</label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: "recent", label: "Mais recente" },
+                { value: "oldest", label: "Mais antigo" },
+                { value: "az", label: "Nome A-Z" },
+                { value: "za", label: "Nome Z-A" },
+              ].map((s) => (
+                <button
+                  key={s.value}
+                  onClick={() => setLocalFilters((f) => ({ ...f, sort: s.value }))}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${localFilters.sort === s.value ? "bg-[#7B5EA7] text-white" : "bg-muted text-muted-foreground"}`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="flex gap-3 border-t border-border px-5 py-4">
+          <button
+            onClick={() => {
+              setLocalFilters({ group: "", album: "", type: "", sort: "recent" })
+            }}
+            className="flex-1 rounded-xl border border-border py-2.5 text-sm font-semibold text-muted-foreground active:bg-muted/50"
+          >
+            Limpar filtros
+          </button>
+          <button
+            onClick={() => {
+              onApply(localFilters)
+              onClose()
+            }}
+            className="flex-1 rounded-xl bg-[#7B5EA7] py-2.5 text-sm font-semibold text-white active:bg-[#6A4F91]"
+          >
+            Aplicar
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function AddPhotocardModal({ onClose, onAdd }: { onClose: () => void; onAdd: (name: string) => void }) {
+  const [searchTerm, setSearchTerm] = useState("")
+  const [addedIds, setAddedIds] = useState<number[]>([])
+
+  const filtered = globalPhotocards.filter(
+    (c) =>
+      c.member.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      c.group.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative z-10 flex w-full max-w-lg flex-col rounded-t-3xl bg-background shadow-2xl animate-in slide-in-from-bottom duration-300 max-h-[85dvh]">
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h3 className="text-lg font-bold text-foreground">Adicionar Photocard</h3>
+          <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground" aria-label="Fechar">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="px-5 pt-4">
+          <div className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2.5">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Buscar por membro ou grupo..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+            />
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto px-5 py-4">
+          <div className="flex flex-col gap-3">
+            {filtered.map((card) => {
+              const wasAdded = addedIds.includes(card.id)
+              return (
+                <div key={card.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+                  <div className="relative h-16 w-12 shrink-0 rounded-xl overflow-hidden">
+                    <Image src={card.image} alt={card.member} fill className="object-cover" crossOrigin="anonymous" />
+                  </div>
+                  <div className="flex flex-1 flex-col gap-0.5 min-w-0">
+                    <span className="text-sm font-semibold text-card-foreground truncate">{card.member}</span>
+                    <span className="text-xs text-muted-foreground truncate">{card.group} | {card.album}</span>
+                  </div>
+                  <button
+                    onClick={() => {
+                      if (!wasAdded) {
+                        setAddedIds((prev) => [...prev, card.id])
+                        onAdd(card.member)
+                      }
+                    }}
+                    disabled={wasAdded}
+                    className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${wasAdded ? "bg-green-100 text-green-700" : "bg-[#7B5EA7] text-white active:bg-[#6A4F91]"}`}
+                  >
+                    {wasAdded ? <><Check className="h-3 w-3" /> Adicionado</> : <><Plus className="h-3 w-3" /> Adicionar</>}
+                  </button>
+                </div>
+              )
+            })}
+            {filtered.length === 0 && (
+              <p className="py-8 text-center text-sm text-muted-foreground">Nenhum resultado encontrado</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ConfirmRemoveModal({ cardName, onConfirm, onCancel }: { cardName: string; onConfirm: () => void; onCancel: () => void }) {
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={onCancel} />
+      <div className="relative z-10 mx-6 w-full max-w-sm rounded-3xl bg-card p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+        <h3 className="text-base font-bold text-card-foreground mb-2">Remover photocard?</h3>
+        <p className="text-sm text-muted-foreground mb-5">
+          {"Tem certeza que deseja remover "}<span className="font-semibold text-card-foreground">{cardName}</span>{" da sua colecao?"}
+        </p>
+        <div className="flex gap-3">
+          <button onClick={onCancel} className="flex-1 rounded-xl border border-border py-2.5 text-sm font-semibold text-muted-foreground active:bg-muted/50">
+            Cancelar
+          </button>
+          <button onClick={onConfirm} className="flex-1 rounded-xl bg-destructive py-2.5 text-sm font-semibold text-white active:opacity-80">
+            Remover
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Toast({ message, onClose }: { message: string; onClose: () => void }) {
+  return (
+    <div className="fixed bottom-20 left-4 right-4 z-[70] flex items-center gap-3 rounded-2xl bg-[#2D1B3D] px-4 py-3 shadow-lg animate-in slide-in-from-bottom duration-300">
+      <Check className="h-4.5 w-4.5 text-green-400 shrink-0" />
+      <span className="flex-1 text-sm font-medium text-white">{message}</span>
+      <button onClick={onClose} className="text-white/60 active:text-white">
+        <X className="h-4 w-4" />
+      </button>
+    </div>
+  )
+}
+
+// --- Main Component ---
+export function CollectionPage() {
+  const [cards, setCards] = useState<Photocard[]>(mockPhotocards)
+  const [isLoading] = useState(false)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [showSearch, setShowSearch] = useState(false)
+  const [showFilters, setShowFilters] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [filters, setFilters] = useState({ group: "", album: "", type: "", sort: "recent" })
+  const [contextCard, setContextCard] = useState<Photocard | null>(null)
+  const [detailCard, setDetailCard] = useState<Photocard | null>(null)
+  const [confirmRemoveCard, setConfirmRemoveCard] = useState<Photocard | null>(null)
+  const [toast, setToast] = useState<string | null>(null)
+
+  const showToast = (msg: string) => {
+    setToast(msg)
+    setTimeout(() => setToast(null), 3000)
+  }
+
+  const activeFilterTags = useMemo(() => {
+    const tags: { key: string; label: string }[] = []
+    if (filters.group) tags.push({ key: "group", label: filters.group })
+    if (filters.album) tags.push({ key: "album", label: filters.album })
+    if (filters.type) tags.push({ key: "type", label: filters.type })
+    return tags
+  }, [filters])
+
+  const filteredCards = useMemo(() => {
+    let result = [...cards]
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase()
+      result = result.filter(
+        (c) =>
+          c.member.toLowerCase().includes(term) ||
+          c.group.toLowerCase().includes(term) ||
+          c.album.toLowerCase().includes(term)
+      )
+    }
+    if (filters.group) result = result.filter((c) => c.group === filters.group)
+    if (filters.album) result = result.filter((c) => c.album === filters.album)
+    if (filters.type) result = result.filter((c) => c.type === filters.type)
+    switch (filters.sort) {
+      case "az":
+        result.sort((a, b) => a.member.localeCompare(b.member))
+        break
+      case "za":
+        result.sort((a, b) => b.member.localeCompare(a.member))
+        break
+      case "oldest":
+        result.sort((a, b) => a.id - b.id)
+        break
+      default:
+        result.sort((a, b) => b.id - a.id)
+    }
+    return result
+  }, [cards, searchTerm, filters])
+
+  const handleRemove = (card: Photocard) => {
+    setContextCard(null)
+    setDetailCard(null)
+    setConfirmRemoveCard(card)
+  }
+
+  const confirmRemove = () => {
+    if (confirmRemoveCard) {
+      setCards((prev) => prev.filter((c) => c.id !== confirmRemoveCard.id))
+      showToast(`${confirmRemoveCard.member} removido da colecao`)
+      setConfirmRemoveCard(null)
+    }
+  }
+
+  const toggleWishlist = (card: Photocard) => {
+    setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, inWishlist: !c.inWishlist } : c)))
+    setContextCard(null)
+    showToast(card.inWishlist ? `${card.member} removido da wishlist` : `${card.member} adicionado a wishlist`)
+  }
+
+  if (isLoading) return <CollectionSkeleton />
+
+  if (cards.length === 0) return <EmptyState onExplore={() => setShowAddModal(true)} />
+
+  return (
+    <>
+      <div className="flex flex-col gap-4">
+        {/* Header */}
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Minha Colecao</h1>
+            <p className="text-xs text-muted-foreground mt-0.5">Organize e gerencie suas photocards</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowSearch(!showSearch)}
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-muted text-muted-foreground active:bg-muted/70"
+              aria-label="Buscar"
+            >
+              <Search className="h-4.5 w-4.5" />
+            </button>
+            <button
+              onClick={() => setShowFilters(true)}
+              className={`flex h-9 w-9 items-center justify-center rounded-xl transition-colors active:opacity-70 ${activeFilterTags.length > 0 ? "bg-[#7B5EA7] text-white" : "bg-muted text-muted-foreground"}`}
+              aria-label="Filtros"
+            >
+              <SlidersHorizontal className="h-4.5 w-4.5" />
+            </button>
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#7B5EA7] text-white active:bg-[#6A4F91]"
+              aria-label="Adicionar"
+            >
+              <Plus className="h-4.5 w-4.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        {showSearch && (
+          <div className="flex items-center gap-2 rounded-xl bg-muted px-3 py-2.5 animate-in slide-in-from-top-2 duration-200">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <input
+              type="text"
+              placeholder="Buscar por membro, grupo ou album..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              autoFocus
+            />
+            {searchTerm && (
+              <button onClick={() => setSearchTerm("")} className="text-muted-foreground">
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Active filter tags */}
+        {activeFilterTags.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {activeFilterTags.map((tag) => (
+              <button
+                key={tag.key}
+                onClick={() => setFilters((f) => ({ ...f, [tag.key]: "" }))}
+                className="flex items-center gap-1 rounded-full bg-[#7B5EA7]/10 px-3 py-1 text-xs font-medium text-[#7B5EA7]"
+              >
+                {tag.label}
+                <X className="h-3 w-3" />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Count */}
+        <p className="text-xs font-medium text-muted-foreground">
+          {"Total: "}{filteredCards.length}{" cards"}
+        </p>
+
+        {/* Grid */}
+        <div className="grid grid-cols-2 gap-3">
+          {filteredCards.map((card) => (
+            <div key={card.id} className="group flex flex-col rounded-2xl border border-border bg-card overflow-hidden shadow-sm transition-shadow hover:shadow-md">
+              <div className="relative aspect-[5/7] w-full">
+                <Image src={card.image} alt={`${card.member} - ${card.group}`} fill className="object-cover" crossOrigin="anonymous" />
+                {/* Wishlist toggle */}
+                <button
+                  onClick={() => toggleWishlist(card)}
+                  className="absolute top-2 left-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm"
+                  aria-label={card.inWishlist ? "Remover da wishlist" : "Adicionar a wishlist"}
+                >
+                  <Heart className={`h-3.5 w-3.5 ${card.inWishlist ? "fill-[#9B2D7B] text-[#9B2D7B]" : ""}`} />
+                </button>
+                {/* Context menu button */}
+                <button
+                  onClick={() => setContextCard(card)}
+                  className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm"
+                  aria-label="Mais opcoes"
+                >
+                  <MoreVertical className="h-3.5 w-3.5" />
+                </button>
+                {/* Type badge */}
+                <div className={`absolute bottom-2 left-2 rounded-full px-2 py-0.5 text-[9px] font-bold backdrop-blur-sm ${card.type === "Regular" ? "bg-[#7B5EA7]/80 text-white" : "bg-[#9B2D7B]/80 text-white"}`}>
+                  {card.type}
+                </div>
+              </div>
+              <div className="flex flex-col gap-0.5 p-2.5">
+                <span className="text-xs font-bold text-card-foreground truncate">{card.member}</span>
+                <span className="text-[10px] text-muted-foreground truncate">{card.group}</span>
+                <span className="text-[10px] text-muted-foreground truncate">{card.album}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {filteredCards.length === 0 && cards.length > 0 && (
+          <div className="flex flex-col items-center gap-2 py-12">
+            <p className="text-sm text-muted-foreground">Nenhum resultado encontrado</p>
+            <button
+              onClick={() => {
+                setSearchTerm("")
+                setFilters({ group: "", album: "", type: "", sort: "recent" })
+              }}
+              className="text-sm font-medium text-[#7B5EA7]"
+            >
+              Limpar filtros
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Modals */}
+      {contextCard && (
+        <CardContextMenu
+          card={contextCard}
+          onClose={() => setContextCard(null)}
+          onViewDetails={() => {
+            setDetailCard(contextCard)
+            setContextCard(null)
+          }}
+          onRemove={() => handleRemove(contextCard)}
+          onToggleWishlist={() => toggleWishlist(contextCard)}
+        />
+      )}
+      {detailCard && (
+        <PhotocardDetail
+          card={detailCard}
+          onClose={() => setDetailCard(null)}
+          onRemove={() => handleRemove(detailCard)}
+        />
+      )}
+      {confirmRemoveCard && (
+        <ConfirmRemoveModal
+          cardName={confirmRemoveCard.member}
+          onConfirm={confirmRemove}
+          onCancel={() => setConfirmRemoveCard(null)}
+        />
+      )}
+      {showFilters && (
+        <FilterPanel
+          onClose={() => setShowFilters(false)}
+          filters={filters}
+          onApply={setFilters}
+        />
+      )}
+      {showAddModal && (
+        <AddPhotocardModal
+          onClose={() => setShowAddModal(false)}
+          onAdd={(name) => showToast(`Photocard ${name} adicionada a colecao`)}
+        />
+      )}
+      {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+    </>
+  )
+}
