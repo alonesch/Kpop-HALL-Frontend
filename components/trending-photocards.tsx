@@ -1,52 +1,29 @@
 "use client"
 
 import Image from "next/image"
-import { Heart, TrendingUp } from "lucide-react"
-
-const trendingCards = [
-  {
-    id: 1,
-    member: "Jungkook",
-    group: "BTS",
-    era: "Golden",
-    image: "https://picsum.photos/seed/jk-golden/200/280",
-    likes: 2340,
-  },
-  {
-    id: 2,
-    member: "Karina",
-    group: "aespa",
-    era: "Whiplash",
-    image: "https://picsum.photos/seed/karina-wh/200/280",
-    likes: 1890,
-  },
-  {
-    id: 3,
-    member: "Hyunjin",
-    group: "Stray Kids",
-    era: "ATE",
-    image: "https://picsum.photos/seed/hjn-ate/200/280",
-    likes: 1650,
-  },
-  {
-    id: 4,
-    member: "Wonyoung",
-    group: "IVE",
-    era: "SWITCH",
-    image: "https://picsum.photos/seed/wy-switch/200/280",
-    likes: 1520,
-  },
-  {
-    id: 5,
-    member: "Jennie",
-    group: "BLACKPINK",
-    era: "SOLO",
-    image: "https://picsum.photos/seed/jennie-bp/200/280",
-    likes: 1410,
-  },
-]
+import { TrendingUp } from "lucide-react"
+import { useCatalog } from "@/hooks/use-catalog"
 
 export function TrendingPhotocards() {
+  const { data, isLoading } = useCatalog()
+  const cards = data?.photocards.slice(0, 5) ?? []
+
+  if (isLoading) {
+    return (
+      <section>
+        <div className="flex items-center gap-2 mb-3">
+          <TrendingUp className="h-4 w-4 text-[#7B5EA7]" />
+          <h2 className="text-base font-bold text-card-foreground">Photocards em Alta</h2>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="h-56 rounded-2xl bg-muted animate-pulse" />
+          ))}
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section>
       <div className="flex items-center gap-2 mb-3">
@@ -54,11 +31,11 @@ export function TrendingPhotocards() {
         <h2 className="text-base font-bold text-card-foreground">Photocards em Alta</h2>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
-        {trendingCards.map((card) => (
+      <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-2 scrollbar-none lg:mx-0 lg:grid lg:grid-cols-5 lg:gap-3 lg:overflow-visible lg:px-0 lg:pb-0">
+        {cards.map((card) => (
           <div
             key={card.id}
-            className="flex shrink-0 w-32 flex-col rounded-2xl bg-card border border-border overflow-hidden shadow-sm"
+            className="flex w-32 shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-sm lg:w-auto lg:min-w-0"
           >
             <div className="relative h-44 w-full">
               <Image
@@ -72,14 +49,13 @@ export function TrendingPhotocards() {
             <div className="flex flex-col gap-0.5 p-2.5">
               <span className="text-xs font-bold text-card-foreground truncate">{card.member}</span>
               <span className="text-[10px] text-muted-foreground truncate">
-                {card.group} | {card.era}
+                {card.group} | {card.album}
               </span>
-              <div className="flex items-center gap-1 mt-1">
-                <Heart className="h-3 w-3 text-[#9B2D7B] fill-[#9B2D7B]" />
-                <span className="text-[10px] font-medium text-muted-foreground">
-                  {card.likes.toLocaleString("pt-BR")}
-                </span>
-              </div>
+              <span className={`mt-1 inline-flex self-start rounded-full px-2 py-0.5 text-[9px] font-semibold ${
+                card.type === "Regular" ? "bg-[#7B5EA7]/10 text-[#7B5EA7]" : "bg-[#9B2D7B]/10 text-[#9B2D7B]"
+              }`}>
+                {card.type}
+              </span>
             </div>
           </div>
         ))}

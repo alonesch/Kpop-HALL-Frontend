@@ -1,7 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { Edit3, Share2, LayoutGrid, Heart, ArrowRightLeft, X, Camera } from "lucide-react"
+import { useMe } from "@/hooks/use-me"
+import { readStringArray, STORAGE_OWNED, STORAGE_WISHLIST, getInitials } from "@/lib/storage"
 
 // --- Types ---
 interface UserProfile {
@@ -13,17 +15,6 @@ interface UserProfile {
   totalCards: number
   wishlistCount: number
   tradesCount: number
-}
-
-const mockProfile: UserProfile = {
-  name: "Kpop Collector",
-  username: "@kpopcollector",
-  email: "collector@kpophall.com",
-  avatar: "KC",
-  role: "Collector",
-  totalCards: 42,
-  wishlistCount: 15,
-  tradesCount: 0,
 }
 
 function RoleBadge({ role }: { role: string }) {
@@ -135,8 +126,30 @@ function EditProfileModal({ profile, onClose, onSave }: { profile: UserProfile; 
 
 // --- Main Component ---
 export function ProfilePage() {
-  const [profile, setProfile] = useState<UserProfile>(mockProfile)
+  const { me } = useMe()
   const [showEdit, setShowEdit] = useState(false)
+  const [ownedCount, setOwnedCount] = useState(0)
+  const [wishlistCount, setWishlistCount] = useState(0)
+
+  useEffect(() => {
+    setOwnedCount(readStringArray(STORAGE_OWNED).length)
+    setWishlistCount(readStringArray(STORAGE_WISHLIST).length)
+  }, [])
+
+  const profile = useMemo<UserProfile>(() => {
+    const username = me?.username ? `@${me.username.replace("@", "")}` : "@usuario"
+    const name = me?.username ? me.username : "Usuario"
+    return {
+      name,
+      username,
+      email: me?.email ?? "-",
+      avatar: getInitials(name),
+      role: (me?.role as UserProfile["role"]) ?? "Collector",
+      totalCards: ownedCount,
+      wishlistCount,
+      tradesCount: 0,
+    }
+  }, [me, ownedCount, wishlistCount])
 
   return (
     <>
@@ -177,7 +190,8 @@ export function ProfilePage() {
         <div className="flex gap-3">
           <button
             onClick={() => setShowEdit(true)}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#7B5EA7] py-3 text-sm font-semibold text-white active:bg-[#6A4F91]"
+            disabled
+            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-muted py-3 text-sm font-semibold text-muted-foreground opacity-60 cursor-not-allowed"
           >
             <Edit3 className="h-4 w-4" /> Editar perfil
           </button>
@@ -213,7 +227,7 @@ export function ProfilePage() {
         <EditProfileModal
           profile={profile}
           onClose={() => setShowEdit(false)}
-          onSave={setProfile}
+          onSave={() => setShowEdit(false)}
         />
       )}
     </>

@@ -35,37 +35,7 @@ export function AppShell({
   const headerTitle = titleOverride ?? pageTitles[activePage] ?? ""
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
-      {/* Top bar */}
-      <header className="sticky top-0 z-30 flex items-center justify-between bg-[#7B5EA7] px-4 py-3 shadow-md">
-        <button
-          onClick={() => setIsSidebarOpen(true)}
-          className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 text-white transition-colors active:bg-white/25"
-          aria-label="Abrir menu"
-        >
-          <Menu className="h-5 w-5" />
-        </button>
-
-        {activePage === "home" && !titleOverride ? (
-          <KpopLogo size="sm" />
-        ) : (
-          <h2 className="text-base font-bold text-white">{headerTitle}</h2>
-        )}
-
-        <button
-          onClick={() => onNavigate("notifications")}
-          className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 text-white transition-colors active:bg-white/25"
-          aria-label="Notificacoes"
-        >
-          <Bell className="h-5 w-5" />
-          {notificationsBadgeCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#9B2D7B] text-[9px] font-bold text-white">
-              {notificationsBadgeCount}
-            </span>
-          )}
-        </button>
-      </header>
-
+    <div className="flex min-h-dvh flex-col bg-background lg:h-dvh lg:min-h-0 lg:flex-row lg:items-stretch lg:overflow-hidden">
       {/* Sidebar */}
       <SidebarMenu
         isOpen={isSidebarOpen}
@@ -75,12 +45,55 @@ export function AppShell({
         onNavigate={onNavigate}
       />
 
-      {/* Main content */}
-      <main className="flex flex-1 flex-col gap-6 px-4 pt-5 pb-24">{children}</main>
+      {/* Coluna principal: no desktop o scroll fica aqui; sticky do header acompanha esta área (igual à sidebar fixa à esquerda) */}
+      <div className="flex min-h-dvh min-w-0 flex-1 flex-col lg:min-h-0 lg:overflow-y-auto lg:overscroll-y-contain">
+        {/* Top bar — sticky no mobile (viewport); no desktop sticky só dentro da coluna rolável acima */}
+        <header className="sticky top-0 z-30 grid shrink-0 grid-cols-[auto_1fr_auto] items-center gap-2 bg-[#7B5EA7] px-4 py-3 shadow-md lg:h-14 lg:py-0 lg:px-8">
+          <div className="flex justify-start">
+            <button
+              type="button"
+              onClick={() => setIsSidebarOpen(true)}
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 text-white transition-colors active:bg-white/25 lg:hidden"
+              aria-label="Abrir menu"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          </div>
 
-      {/* Bottom Tab Bar */}
+          <div className="flex min-w-0 justify-center">
+            {activePage === "home" && !titleOverride ? (
+              <KpopLogo size="sm" />
+            ) : (
+              <h2 className="truncate text-center text-base font-bold text-white">{headerTitle}</h2>
+            )}
+          </div>
+
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => onNavigate("notifications")}
+              className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-white/15 text-white transition-colors active:bg-white/25"
+              aria-label="Notificacoes"
+            >
+              <Bell className="h-5 w-5" />
+              {notificationsBadgeCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-[#9B2D7B] text-[9px] font-bold text-white">
+                  {notificationsBadgeCount}
+                </span>
+              )}
+            </button>
+          </div>
+        </header>
+
+        {/* Main content */}
+        <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 pt-5 pb-24 lg:px-8 lg:pb-8 lg:pt-6">
+          {children}
+        </main>
+      </div>
+
+      {/* Bottom Tab Bar — mobile only */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-20 flex items-center justify-around border-t border-border bg-card px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]"
+        className="fixed bottom-0 left-0 right-0 z-20 flex items-center justify-around border-t border-border bg-card px-2 pb-[env(safe-area-inset-bottom)] pt-2 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] lg:hidden"
         aria-label="Navegacao principal"
       >
         {[

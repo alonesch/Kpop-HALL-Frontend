@@ -98,8 +98,16 @@ const allNews: NewsItem[] = [
 
 function NewsCard({ item, compact = false }: { item: NewsItem; compact?: boolean }) {
   return (
-    <div className={`flex ${compact ? "gap-3" : "flex-col gap-2"} rounded-2xl bg-card border border-border overflow-hidden`}>
-      <div className={`relative ${compact ? "h-20 w-20 shrink-0 rounded-2xl overflow-hidden" : "h-36 w-full"}`}>
+    <div
+      className={`flex overflow-hidden rounded-2xl border border-border bg-card ${
+        compact ? "gap-3 lg:flex-col lg:gap-0" : "flex-col gap-2"
+      }`}
+    >
+      <div
+        className={`relative shrink-0 overflow-hidden rounded-2xl ${
+          compact ? "h-20 w-20 lg:h-36 lg:w-full lg:rounded-b-none lg:rounded-t-2xl" : "h-36 w-full"
+        }`}
+      >
         <Image
           src={item.image}
           alt={item.title}
@@ -108,12 +116,20 @@ function NewsCard({ item, compact = false }: { item: NewsItem; compact?: boolean
           crossOrigin="anonymous"
         />
       </div>
-      <div className={`flex flex-col gap-1 ${compact ? "py-2 pr-3" : "px-3 pb-3"}`}>
-        <h4 className={`font-semibold text-card-foreground leading-snug ${compact ? "text-xs line-clamp-2" : "text-sm line-clamp-2"}`}>
+      <div
+        className={`flex flex-col gap-1 ${compact ? "py-2 pr-3 lg:p-3" : "px-3 pb-3"}`}
+      >
+        <h4
+          className={`line-clamp-2 font-semibold leading-snug text-card-foreground ${
+            compact ? "text-xs lg:text-sm" : "text-sm line-clamp-2"
+          }`}
+        >
           {item.title}
         </h4>
-        {!compact && (
-          <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+        {!compact ? (
+          <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{item.summary}</p>
+        ) : (
+          <p className="hidden line-clamp-2 text-xs leading-relaxed text-muted-foreground lg:block">
             {item.summary}
           </p>
         )}
@@ -153,7 +169,7 @@ export function NewsSection() {
           </button>
         </div>
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 lg:grid lg:grid-cols-3 lg:gap-4">
           {previewNews.map((item) => (
             <NewsCard key={item.id} item={item} compact />
           ))}
@@ -162,13 +178,13 @@ export function NewsSection() {
 
       {/* News Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center">
+        <div className="fixed inset-0 z-50 flex items-end justify-center lg:items-center lg:p-6">
           <div
             className="absolute inset-0 bg-black/50"
             onClick={handleCloseModal}
             aria-hidden="true"
           />
-          <div className="relative z-10 flex max-h-[85dvh] w-full max-w-lg flex-col rounded-t-3xl bg-background shadow-2xl animate-in slide-in-from-bottom duration-300">
+          <div className="relative z-10 flex max-h-[85dvh] w-full max-w-lg flex-col rounded-t-3xl bg-background shadow-2xl animate-in slide-in-from-bottom duration-300 lg:max-h-[min(90dvh,44rem)] lg:rounded-3xl">
             {/* Modal header */}
             <div className="flex items-center justify-between border-b border-border px-5 py-4">
               <h3 className="text-lg font-bold text-foreground">Novidades K-pop</h3>

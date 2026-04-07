@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { AppShell } from "@/components/app-shell"
 import { ExplorePage } from "@/components/explore-page"
 import { Skeleton } from "@/components/ui/skeleton"
+import { clearSession } from "@/lib/auth"
 
 export default function ExplorarRoutePage() {
   const router = useRouter()
@@ -25,7 +26,7 @@ export default function ExplorarRoutePage() {
   }
 
   const handleLogout = () => {
-    localStorage.removeItem("kpop-hall-logged-in")
+    clearSession()
     router.push("/")
   }
 

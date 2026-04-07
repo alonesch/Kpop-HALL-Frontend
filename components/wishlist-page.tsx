@@ -1,25 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useMemo } from "react"
 import Image from "next/image"
-import { Heart, X, Trash2, Plus, Search, Check } from "lucide-react"
+import { Heart, X, Trash2, Plus, Check } from "lucide-react"
+import { useCatalog } from "@/hooks/use-catalog"
+import { CatalogPhotocard } from "@/lib/catalog"
+import { readStringArray, writeStringArray, STORAGE_WISHLIST } from "@/lib/storage"
+import { Skeleton } from "@/components/ui/skeleton"
 
-interface WishlistCard {
-  id: number
-  member: string
-  group: string
-  album: string
-  image: string
+interface WishlistCard extends CatalogPhotocard {
   priority: "Alta" | "Media" | "Baixa"
 }
-
-const mockWishlist: WishlistCard[] = [
-  { id: 1, member: "Jimin", group: "BTS", album: "FACE", image: "https://picsum.photos/seed/jimin-face/200/280", priority: "Alta" },
-  { id: 2, member: "Lisa", group: "BLACKPINK", album: "LALISA", image: "https://picsum.photos/seed/lisa-ll/200/280", priority: "Alta" },
-  { id: 3, member: "Ningning", group: "aespa", album: "MY WORLD", image: "https://picsum.photos/seed/nn-mw/200/280", priority: "Media" },
-  { id: 4, member: "Bangchan", group: "Stray Kids", album: "MAXIDENT", image: "https://picsum.photos/seed/bc-max/200/280", priority: "Baixa" },
-  { id: 5, member: "Kazuha", group: "LE SSERAFIM", album: "UNFORGIVEN", image: "https://picsum.photos/seed/kz-unfg/200/280", priority: "Media" },
-]
 
 const priorityColors: Record<string, string> = {
   Alta: "bg-red-100 text-red-700",
@@ -27,10 +18,41 @@ const priorityColors: Record<string, string> = {
   Baixa: "bg-green-100 text-green-700",
 }
 
+function SkeletonHeader() {
+  return (
+    <div className="flex flex-col gap-2">
+      <Skeleton className="h-6 w-40" />
+      <Skeleton className="h-4 w-36" />
+    </div>
+  )
+}
+
 export function WishlistPage() {
-  const [cards, setCards] = useState(mockWishlist)
+  const { data, isLoading, error, refresh } = useCatalog()
+  const [wishlistIds, setWishlistIds] = useState<string[]>([])
   const [confirmRemove, setConfirmRemove] = useState<WishlistCard | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const hasError = Boolean(error)
+
+  const catalog = data?.photocards ?? []
+
+  useEffect(() => {
+    setWishlistIds(readStringArray(STORAGE_WISHLIST))
+  }, [])
+
+  useEffect(() => {
+    writeStringArray(STORAGE_WISHLIST, wishlistIds)
+  }, [wishlistIds])
+
+  const cards = useMemo<WishlistCard[]>(() => {
+    const wishlistSet = new Set(wishlistIds)
+    return catalog
+      .filter((card) => wishlistSet.has(card.id))
+      .map((card) => ({
+        ...card,
+        priority: "Media",
+      }))
+  }, [catalog, wishlistIds])
 
   const showToast = (msg: string) => {
     setToast(msg)
@@ -39,10 +61,45 @@ export function WishlistPage() {
 
   const handleRemove = () => {
     if (confirmRemove) {
-      setCards((prev) => prev.filter((c) => c.id !== confirmRemove.id))
+      setWishlistIds((prev) => prev.filter((id) => id !== confirmRemove.id))
       showToast(`${confirmRemove.member} removido da wishlist`)
       setConfirmRemove(null)
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col gap-4">
+        <div>
+          <SkeletonHeader />
+        </div>
+        <div className="grid gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-24 rounded-2xl bg-muted animate-pulse" />
+          ))}
+        </div>
+      </div>
+    )
+  }
+
+  if (hasError) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16">
+        <div className="flex h-24 w-24 items-center justify-center rounded-full bg-muted">
+          <Heart className="h-10 w-10 text-muted-foreground" />
+        </div>
+        <div className="flex flex-col items-center gap-1 text-center">
+          <h3 className="text-base font-semibold text-foreground">Erro ao carregar</h3>
+          <p className="text-sm text-muted-foreground px-8">Nao foi possivel carregar a wishlist.</p>
+        </div>
+        <button
+          onClick={() => refresh()}
+          className="rounded-full bg-[#7B5EA7] px-6 py-2.5 text-sm font-semibold text-white transition-colors active:bg-[#6A4F91]"
+        >
+          Tentar novamente
+        </button>
+      </div>
+    )
   }
 
   return (

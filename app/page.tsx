@@ -5,6 +5,7 @@ import { OnboardingScreen } from "@/components/onboarding-screen"
 import { LoginScreen } from "@/components/login-screen"
 import { RegisterScreen } from "@/components/register-screen"
 import { HomeScreen } from "@/components/home-screen"
+import { clearSession } from "@/lib/auth"
 
 type AppScreen = "loading" | "onboarding" | "login" | "register" | "home"
 
@@ -41,7 +42,7 @@ export default function Page() {
   }
 
   const handleLogout = () => {
-    localStorage.removeItem("kpop-hall-logged-in")
+    clearSession()
     setScreen("login")
   }
 

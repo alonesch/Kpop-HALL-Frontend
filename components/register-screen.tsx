@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Mail, Lock, User, AtSign } from "lucide-react"
 import { KpopBackground } from "./kpop-background"
 import { KpopLogo } from "./kpop-logo"
+import { registerUser } from "@/lib/api"
 
 interface RegisterScreenProps {
   onRegisterSuccess: () => void
@@ -61,22 +62,16 @@ export function RegisterScreen({ onRegisterSuccess, onBackToLogin }: RegisterScr
     setErrors((prev) => ({ ...prev, general: undefined }))
 
     try {
-      // Futuro: integrar com API real
-      // Simula um pequeno atraso de rede
-      await new Promise((resolve) => setTimeout(resolve, 800))
-
-      // Exemplo de estado de erro de credenciais ja existentes
-      if (username.toLowerCase() === "kpopcollector" || email.toLowerCase() === "collector@kpophall.com") {
-        setErrors({
-          general: "Ja existe uma conta com esses dados. Tente outro email ou username.",
-        })
-        return
-      }
-
+      await registerUser({
+        username,
+        email,
+        password,
+      })
       onRegisterSuccess()
-    } catch {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Nao foi possivel criar sua conta. Tente novamente."
       setErrors({
-        general: "Nao foi possivel criar sua conta. Tente novamente.",
+        general: message,
       })
     } finally {
       setIsSubmitting(false)

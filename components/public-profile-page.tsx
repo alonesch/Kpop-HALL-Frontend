@@ -5,6 +5,9 @@ import Image from "next/image"
 import { LayoutGrid, Heart, ArrowRightLeft, UserX } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useMe } from "@/hooks/use-me"
+import { useCatalog } from "@/hooks/use-catalog"
+import { readStringArray, STORAGE_OWNED, STORAGE_WISHLIST, getInitials } from "@/lib/storage"
 
 type PhotocardType = "Regular" | "Irregular"
 
@@ -25,49 +28,6 @@ interface PublicUserProfile {
   wishlistPublic: boolean
   collection: PublicPhotocard[]
   wishlist: PublicPhotocard[]
-}
-
-const mockUsers: Record<string, PublicUserProfile> = {
-  mina: {
-    name: "Mina",
-    username: "mina",
-    avatar: "M",
-    role: "Collector",
-    wishlistPublic: true,
-    collection: [
-      { id: 301, member: "Mina", group: "TWICE", album: "READY TO BE", type: "Regular", image: "https://picsum.photos/seed/u-mina-rtb/240/336" },
-      { id: 302, member: "Sana", group: "TWICE", album: "Formula of Love", type: "Irregular", image: "https://picsum.photos/seed/u-sana-fol/240/336" },
-      { id: 303, member: "Karina", group: "aespa", album: "Drama", type: "Regular", image: "https://picsum.photos/seed/u-karina-dr/240/336" },
-      { id: 304, member: "Jungkook", group: "BTS", album: "Golden", type: "Regular", image: "https://picsum.photos/seed/u-jk-golden/240/336" },
-    ],
-    wishlist: [
-      { id: 401, member: "Lisa", group: "BLACKPINK", album: "LALISA", type: "Irregular", image: "https://picsum.photos/seed/u-w-lalisa/240/336" },
-      { id: 402, member: "Chaewon", group: "LE SSERAFIM", album: "ANTIFRAGILE", type: "Regular", image: "https://picsum.photos/seed/u-w-ant/240/336" },
-    ],
-  },
-  hyunjin: {
-    name: "Hyunjin",
-    username: "hyunjin",
-    avatar: "H",
-    role: "Trader",
-    wishlistPublic: false,
-    collection: [
-      { id: 311, member: "Hyunjin", group: "Stray Kids", album: "ATE", type: "Irregular", image: "https://picsum.photos/seed/u-hjn-ate/240/336" },
-      { id: 312, member: "Felix", group: "Stray Kids", album: "ROCK-STAR", type: "Regular", image: "https://picsum.photos/seed/u-felix-rs/240/336" },
-    ],
-    wishlist: [],
-  },
-  winter: {
-    name: "Winter",
-    username: "winter",
-    avatar: "W",
-    role: "Collector",
-    wishlistPublic: true,
-    collection: [],
-    wishlist: [
-      { id: 411, member: "Ningning", group: "aespa", album: "MY WORLD", type: "Regular", image: "https://picsum.photos/seed/u-w-nn/240/336" },
-    ],
-  },
 }
 
 function RoleBadge({ role }: { role: string }) {
@@ -145,6 +105,8 @@ function Grid({ cards }: { cards: PublicPhotocard[] }) {
 }
 
 export function PublicProfilePage({ username }: { username: string }) {
+  const { me } = useMe()
+  const { data, isLoading: isCatalogLoading } = useCatalog()
   const [isLoading, setIsLoading] = useState(true)
   const [user, setUser] = useState<PublicUserProfile | null>(null)
 
@@ -152,14 +114,33 @@ export function PublicProfilePage({ username }: { username: string }) {
 
   useEffect(() => {
     setIsLoading(true)
-    const t = setTimeout(() => {
-      setUser(mockUsers[normalized] ?? null)
-      setIsLoading(false)
-    }, 650)
-    return () => clearTimeout(t)
-  }, [normalized])
+    const ownedIds = readStringArray(STORAGE_OWNED)
+    const wishlistIds = readStringArray(STORAGE_WISHLIST)
+    const catalog = data?.photocards ?? []
 
-  if (isLoading) return <ProfileSkeleton />
+    const matchesSelf = me?.username?.replace("@", "").toLowerCase() === normalized
+    if (!matchesSelf || !me) {
+      setUser(null)
+      setIsLoading(false)
+      return
+    }
+
+    const collection = catalog.filter((card) => ownedIds.includes(card.id))
+    const wishlist = catalog.filter((card) => wishlistIds.includes(card.id))
+
+    setUser({
+      name: me.username,
+      username: me.username,
+      avatar: getInitials(me.username),
+      role: (me.role as PublicUserProfile["role"]) ?? "Collector",
+      wishlistPublic: true,
+      collection,
+      wishlist,
+    })
+    setIsLoading(false)
+  }, [normalized, me, data])
+
+  if (isLoading || isCatalogLoading) return <ProfileSkeleton />
 
   if (!user) {
     return (

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { AppShell } from "@/components/app-shell"
 import { PublicProfilePage } from "@/components/public-profile-page"
+import { clearSession } from "@/lib/auth"
 
 export default function PublicProfileRoutePage({
   params,
@@ -26,7 +27,7 @@ export default function PublicProfileRoutePage({
   }
 
   const handleLogout = () => {
-    localStorage.removeItem("kpop-hall-logged-in")
+    clearSession()
     router.push("/")
   }
 

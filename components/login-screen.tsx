@@ -4,6 +4,8 @@ import { useState } from "react"
 import { Mail, Lock } from "lucide-react"
 import { KpopBackground } from "./kpop-background"
 import { KpopLogo } from "./kpop-logo"
+import { loginUser } from "@/lib/api"
+import { setToken } from "@/lib/auth"
 
 interface LoginScreenProps {
   onLogin: () => void
@@ -13,10 +15,23 @@ interface LoginScreenProps {
 export function LoginScreen({ onLogin, onSignUp }: LoginScreenProps) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    onLogin()
+    setError(null)
+    setIsSubmitting(true)
+    try {
+      const response = await loginUser({ email, password })
+      setToken(response.token)
+      onLogin()
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Nao foi possivel fazer login."
+      setError(message)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -36,6 +51,11 @@ export function LoginScreen({ onLogin, onSignUp }: LoginScreenProps) {
             Entre na sua conta
           </h2>
 
+          {error && (
+            <div className="mb-4 rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              {error}
+            </div>
+          )}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {/* Email field */}
             <div className="flex flex-col gap-1.5">
@@ -88,9 +108,10 @@ export function LoginScreen({ onLogin, onSignUp }: LoginScreenProps) {
             {/* Login button */}
             <button
               type="submit"
-              className="mt-2 w-full rounded-full bg-primary py-3 text-base font-semibold text-primary-foreground shadow-lg transition-transform active:scale-[0.97]"
+              disabled={isSubmitting}
+              className="mt-2 w-full rounded-full bg-primary py-3 text-base font-semibold text-primary-foreground shadow-lg transition-transform active:scale-[0.97] disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              Entrar
+              {isSubmitting ? "Entrando..." : "Entrar"}
             </button>
           </form>
 

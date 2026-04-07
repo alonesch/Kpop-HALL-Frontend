@@ -11,6 +11,7 @@ import { WishlistPage } from "./wishlist-page"
 import { ProfilePage } from "./profile-page"
 import { SettingsPage } from "./settings-page"
 import { ExplorePage } from "./explore-page"
+import { readStringArray, STORAGE_OWNED, STORAGE_WISHLIST } from "@/lib/storage"
 
 interface HomeScreenProps {
   onLogout: () => void
@@ -18,35 +19,51 @@ interface HomeScreenProps {
 }
 
 function HomeContent() {
+  const [ownedCount, setOwnedCount] = useState(0)
+  const [wishlistCount, setWishlistCount] = useState(0)
+
+  useEffect(() => {
+    setOwnedCount(readStringArray(STORAGE_OWNED).length)
+    setWishlistCount(readStringArray(STORAGE_WISHLIST).length)
+  }, [])
+
   return (
-    <>
+    <div className="flex flex-col gap-6 lg:grid lg:grid-cols-[minmax(0,1fr)_17.5rem] lg:gap-x-8 lg:gap-y-6 lg:items-start">
       {/* Welcome banner */}
-      <div className="rounded-2xl bg-gradient-to-br from-[#7B5EA7] to-[#9B2D7B] p-4 shadow-lg">
-        <p className="text-xs text-white/70 mb-0.5">Ola, Collector!</p>
-        <h1 className="text-lg font-bold text-white mb-2 text-balance">
-          Sua vitrine esta esperando por novos photocards
-        </h1>
-        <div className="flex gap-3">
-          <div className="flex items-center gap-1.5 rounded-xl bg-white/15 px-3 py-1.5">
-            <LayoutGrid className="h-3.5 w-3.5 text-white" />
-            <span className="text-xs font-medium text-white">42 cards</span>
-          </div>
-          <div className="flex items-center gap-1.5 rounded-xl bg-white/15 px-3 py-1.5">
-            <Heart className="h-3.5 w-3.5 text-white" />
-            <span className="text-xs font-medium text-white">15 wishes</span>
-          </div>
+      <div className="rounded-2xl bg-gradient-to-br from-[#7B5EA7] to-[#9B2D7B] p-4 shadow-lg lg:col-start-1 lg:row-start-1 lg:flex lg:items-center lg:justify-between lg:gap-8 lg:p-6">
+        <div className="min-w-0 lg:max-w-xl">
+          <p className="mb-0.5 text-xs text-white/70">Ola, Collector!</p>
+          <h1 className="mb-2 text-balance text-lg font-bold text-white lg:mb-0 lg:text-xl">
+            Sua vitrine esta esperando por novos photocards
+          </h1>
         </div>
+          <div className="flex gap-3 lg:shrink-0">
+            <div className="flex items-center gap-1.5 rounded-xl bg-white/15 px-3 py-1.5">
+              <LayoutGrid className="h-3.5 w-3.5 text-white" />
+              <span className="text-xs font-medium text-white">{ownedCount} cards</span>
+            </div>
+            <div className="flex items-center gap-1.5 rounded-xl bg-white/15 px-3 py-1.5">
+              <Heart className="h-3.5 w-3.5 text-white" />
+              <span className="text-xs font-medium text-white">{wishlistCount} wishes</span>
+            </div>
+          </div>
       </div>
 
       {/* Trending Photocards */}
-      <TrendingPhotocards />
+      <div className="lg:col-start-1 lg:row-start-2">
+        <TrendingPhotocards />
+      </div>
 
       {/* News */}
-      <NewsSection />
+      <div className="lg:col-start-1 lg:row-start-3">
+        <NewsSection />
+      </div>
 
-      {/* Friends Activity */}
-      <FriendsActivity />
-    </>
+      {/* Friends Activity — sidebar on desktop, below news on mobile */}
+      <div className="lg:sticky lg:top-24 lg:col-start-2 lg:row-start-1 lg:row-span-3 lg:self-start">
+        <FriendsActivity />
+      </div>
+    </div>
   )
 }
 

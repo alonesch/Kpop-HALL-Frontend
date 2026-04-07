@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Image from "next/image"
 import {
   Search,
@@ -13,46 +13,15 @@ import {
   ArrowRightLeft,
   Heart,
   Check,
+  RefreshCcw,
 } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useCatalog } from "@/hooks/use-catalog"
+import { CatalogPhotocard } from "@/lib/catalog"
+import { readStringArray, writeStringArray, STORAGE_OWNED, STORAGE_WISHLIST } from "@/lib/storage"
 
 // --- Types ---
-interface Photocard {
-  id: number
-  member: string
-  group: string
-  album: string
-  type: "Regular" | "Irregular"
-  image: string
-  inWishlist: boolean
-}
-
-// --- Mock Data ---
-const mockPhotocards: Photocard[] = [
-  { id: 1, member: "Jungkook", group: "BTS", album: "Golden", type: "Regular", image: "https://picsum.photos/seed/jk-golden/200/280", inWishlist: false },
-  { id: 2, member: "Karina", group: "aespa", album: "Whiplash", type: "Regular", image: "https://picsum.photos/seed/karina-wh/200/280", inWishlist: true },
-  { id: 3, member: "Hyunjin", group: "Stray Kids", album: "ATE", type: "Irregular", image: "https://picsum.photos/seed/hjn-ate/200/280", inWishlist: false },
-  { id: 4, member: "Wonyoung", group: "IVE", album: "SWITCH", type: "Regular", image: "https://picsum.photos/seed/wy-switch/200/280", inWishlist: false },
-  { id: 5, member: "Jennie", group: "BLACKPINK", album: "SOLO", type: "Regular", image: "https://picsum.photos/seed/jennie-bp/200/280", inWishlist: true },
-  { id: 6, member: "Felix", group: "Stray Kids", album: "ROCK-STAR", type: "Irregular", image: "https://picsum.photos/seed/felix-rs/200/280", inWishlist: false },
-  { id: 7, member: "Winter", group: "aespa", album: "Drama", type: "Regular", image: "https://picsum.photos/seed/winter-dr/200/280", inWishlist: false },
-  { id: 8, member: "Yuna", group: "ITZY", album: "BORN TO BE", type: "Regular", image: "https://picsum.photos/seed/yuna-btb/200/280", inWishlist: true },
-  { id: 9, member: "V", group: "BTS", album: "Layover", type: "Regular", image: "https://picsum.photos/seed/v-layover/200/280", inWishlist: false },
-  { id: 10, member: "Sakura", group: "LE SSERAFIM", album: "EASY", type: "Irregular", image: "https://picsum.photos/seed/sakura-ez/200/280", inWishlist: false },
-]
-
-const allGroups = [...new Set(mockPhotocards.map((c) => c.group))]
-const allAlbums = [...new Set(mockPhotocards.map((c) => c.album))]
-
-// --- Global add search data ---
-const globalPhotocards = [
-  { id: 101, member: "Jimin", group: "BTS", album: "FACE", image: "https://picsum.photos/seed/jimin-face/200/280" },
-  { id: 102, member: "Lisa", group: "BLACKPINK", album: "LALISA", image: "https://picsum.photos/seed/lisa-ll/200/280" },
-  { id: 103, member: "Ningning", group: "aespa", album: "MY WORLD", image: "https://picsum.photos/seed/nn-mw/200/280" },
-  { id: 104, member: "Bangchan", group: "Stray Kids", album: "MAXIDENT", image: "https://picsum.photos/seed/bc-max/200/280" },
-  { id: 105, member: "Kazuha", group: "LE SSERAFIM", album: "UNFORGIVEN", image: "https://picsum.photos/seed/kz-unfg/200/280" },
-  { id: 106, member: "Rei", group: "IVE", album: "I'VE MINE", image: "https://picsum.photos/seed/rei-im/200/280" },
-]
+type Photocard = CatalogPhotocard & { inWishlist: boolean }
 
 // --- Sub Components ---
 
@@ -204,10 +173,16 @@ function FilterPanel({
   onClose,
   filters,
   onApply,
+  groups,
+  albums,
+  catalog,
 }: {
   onClose: () => void
   filters: { group: string; album: string; type: string; sort: string }
   onApply: (f: { group: string; album: string; type: string; sort: string }) => void
+  groups: string[]
+  albums: string[]
+  catalog: CatalogPhotocard[]
 }) {
   const [localFilters, setLocalFilters] = useState(filters)
 
@@ -232,7 +207,7 @@ function FilterPanel({
               >
                 Todos
               </button>
-              {allGroups.map((g) => (
+              {groups.map((g) => (
                 <button
                   key={g}
                   onClick={() => setLocalFilters((f) => ({ ...f, group: g, album: "" }))}
@@ -253,7 +228,7 @@ function FilterPanel({
               >
                 Todos
               </button>
-              {(localFilters.group ? allAlbums.filter((a) => mockPhotocards.some((c) => c.group === localFilters.group && c.album === a)) : allAlbums).map((a) => (
+              {(localFilters.group ? albums.filter((a) => catalog.some((c) => c.group === localFilters.group && c.album === a)) : albums).map((a) => (
                 <button
                   key={a}
                   onClick={() => setLocalFilters((f) => ({ ...f, album: a }))}
@@ -324,11 +299,21 @@ function FilterPanel({
   )
 }
 
-function AddPhotocardModal({ onClose, onAdd }: { onClose: () => void; onAdd: (name: string) => void }) {
+function AddPhotocardModal({
+  onClose,
+  onAdd,
+  catalog,
+  ownedIds,
+}: {
+  onClose: () => void
+  onAdd: (card: CatalogPhotocard) => void
+  catalog: CatalogPhotocard[]
+  ownedIds: string[]
+}) {
   const [searchTerm, setSearchTerm] = useState("")
-  const [addedIds, setAddedIds] = useState<number[]>([])
+  const [addedIds, setAddedIds] = useState<string[]>(ownedIds)
 
-  const filtered = globalPhotocards.filter(
+  const filtered = catalog.filter(
     (c) =>
       c.member.toLowerCase().includes(searchTerm.toLowerCase()) ||
       c.group.toLowerCase().includes(searchTerm.toLowerCase())
@@ -373,7 +358,7 @@ function AddPhotocardModal({ onClose, onAdd }: { onClose: () => void; onAdd: (na
                     onClick={() => {
                       if (!wasAdded) {
                         setAddedIds((prev) => [...prev, card.id])
-                        onAdd(card.member)
+                        onAdd(card)
                       }
                     }}
                     disabled={wasAdded}
@@ -430,8 +415,9 @@ function Toast({ message, onClose }: { message: string; onClose: () => void }) {
 
 // --- Main Component ---
 export function CollectionPage() {
-  const [cards, setCards] = useState<Photocard[]>(mockPhotocards)
-  const [isLoading] = useState(false)
+  const { data, isLoading, error, refresh } = useCatalog()
+  const [ownedIds, setOwnedIds] = useState<string[]>([])
+  const [wishlistIds, setWishlistIds] = useState<string[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [showSearch, setShowSearch] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
@@ -441,6 +427,33 @@ export function CollectionPage() {
   const [detailCard, setDetailCard] = useState<Photocard | null>(null)
   const [confirmRemoveCard, setConfirmRemoveCard] = useState<Photocard | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const hasError = Boolean(error)
+
+  const catalog = data?.photocards ?? []
+
+  useEffect(() => {
+    setOwnedIds(readStringArray(STORAGE_OWNED))
+    setWishlistIds(readStringArray(STORAGE_WISHLIST))
+  }, [])
+
+  useEffect(() => {
+    writeStringArray(STORAGE_OWNED, ownedIds)
+  }, [ownedIds])
+
+  useEffect(() => {
+    writeStringArray(STORAGE_WISHLIST, wishlistIds)
+  }, [wishlistIds])
+
+  const groups = useMemo(() => [...new Set(catalog.map((c) => c.group))].sort(), [catalog])
+  const albums = useMemo(() => [...new Set(catalog.map((c) => c.album))].sort(), [catalog])
+
+  const cards = useMemo<Photocard[]>(() => {
+    const ownedSet = new Set(ownedIds)
+    const wishlistSet = new Set(wishlistIds)
+    return catalog
+      .filter((card) => ownedSet.has(card.id))
+      .map((card) => ({ ...card, inWishlist: wishlistSet.has(card.id) }))
+  }, [catalog, ownedIds, wishlistIds])
 
   const showToast = (msg: string) => {
     setToast(msg)
@@ -493,19 +506,39 @@ export function CollectionPage() {
 
   const confirmRemove = () => {
     if (confirmRemoveCard) {
-      setCards((prev) => prev.filter((c) => c.id !== confirmRemoveCard.id))
+      setOwnedIds((prev) => prev.filter((id) => id !== confirmRemoveCard.id))
       showToast(`${confirmRemoveCard.member} removido da colecao`)
       setConfirmRemoveCard(null)
     }
   }
 
   const toggleWishlist = (card: Photocard) => {
-    setCards((prev) => prev.map((c) => (c.id === card.id ? { ...c, inWishlist: !c.inWishlist } : c)))
+    setWishlistIds((prev) => (prev.includes(card.id) ? prev.filter((id) => id !== card.id) : [...prev, card.id]))
     setContextCard(null)
     showToast(card.inWishlist ? `${card.member} removido da wishlist` : `${card.member} adicionado a wishlist`)
   }
 
   if (isLoading) return <CollectionSkeleton />
+
+  if (hasError) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-4 py-16">
+        <div className="flex h-24 w-24 items-center justify-center rounded-full bg-muted">
+          <RefreshCcw className="h-10 w-10 text-muted-foreground" />
+        </div>
+        <div className="flex flex-col items-center gap-1 text-center">
+          <h3 className="text-base font-semibold text-foreground">Erro ao carregar</h3>
+          <p className="text-sm text-muted-foreground px-8">Nao foi possivel carregar sua colecao.</p>
+        </div>
+        <button
+          onClick={() => refresh()}
+          className="rounded-full bg-[#7B5EA7] px-6 py-2.5 text-sm font-semibold text-white transition-colors active:bg-[#6A4F91]"
+        >
+          Tentar novamente
+        </button>
+      </div>
+    )
+  }
 
   if (cards.length === 0) return <EmptyState onExplore={() => setShowAddModal(true)} />
 
@@ -668,12 +701,20 @@ export function CollectionPage() {
           onClose={() => setShowFilters(false)}
           filters={filters}
           onApply={setFilters}
+          groups={groups}
+          albums={albums}
+          catalog={catalog}
         />
       )}
       {showAddModal && (
         <AddPhotocardModal
           onClose={() => setShowAddModal(false)}
-          onAdd={(name) => showToast(`Photocard ${name} adicionada a colecao`)}
+          onAdd={(card) => {
+            setOwnedIds((prev) => (prev.includes(card.id) ? prev : [...prev, card.id]))
+            showToast(`Photocard ${card.member} adicionada a colecao`)
+          }}
+          catalog={catalog}
+          ownedIds={ownedIds}
         />
       )}
       {toast && <Toast message={toast} onClose={() => setToast(null)} />}

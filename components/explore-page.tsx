@@ -4,55 +4,13 @@ import { useEffect, useMemo, useState } from "react"
 import Image from "next/image"
 import { Heart, Search, SlidersHorizontal, X, Check, RefreshCcw } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useCatalog } from "@/hooks/use-catalog"
+import { CatalogPhotocard } from "@/lib/catalog"
+import { readStringArray, writeStringArray, STORAGE_OWNED, STORAGE_WISHLIST } from "@/lib/storage"
 
 type PhotocardType = "Regular" | "Irregular"
 
-interface ExplorePhotocard {
-  id: number
-  member: string
-  group: string
-  album: string
-  type: PhotocardType
-  image: string
-}
-
-const mockCatalog: ExplorePhotocard[] = [
-  { id: 1, member: "Jungkook", group: "BTS", album: "Golden", type: "Regular", image: "https://picsum.photos/seed/ex-jk-golden/240/336" },
-  { id: 2, member: "Karina", group: "aespa", album: "Whiplash", type: "Regular", image: "https://picsum.photos/seed/ex-karina-wh/240/336" },
-  { id: 3, member: "Hyunjin", group: "Stray Kids", album: "ATE", type: "Irregular", image: "https://picsum.photos/seed/ex-hjn-ate/240/336" },
-  { id: 4, member: "Wonyoung", group: "IVE", album: "SWITCH", type: "Regular", image: "https://picsum.photos/seed/ex-wy-switch/240/336" },
-  { id: 5, member: "Jennie", group: "BLACKPINK", album: "SOLO", type: "Regular", image: "https://picsum.photos/seed/ex-jennie-solo/240/336" },
-  { id: 6, member: "Felix", group: "Stray Kids", album: "ROCK-STAR", type: "Irregular", image: "https://picsum.photos/seed/ex-felix-rs/240/336" },
-  { id: 7, member: "Winter", group: "aespa", album: "Drama", type: "Regular", image: "https://picsum.photos/seed/ex-winter-dr/240/336" },
-  { id: 8, member: "Yuna", group: "ITZY", album: "BORN TO BE", type: "Regular", image: "https://picsum.photos/seed/ex-yuna-btb/240/336" },
-  { id: 9, member: "V", group: "BTS", album: "Layover", type: "Regular", image: "https://picsum.photos/seed/ex-v-layover/240/336" },
-  { id: 10, member: "Sakura", group: "LE SSERAFIM", album: "EASY", type: "Irregular", image: "https://picsum.photos/seed/ex-sakura-easy/240/336" },
-  { id: 11, member: "Jimin", group: "BTS", album: "FACE", type: "Regular", image: "https://picsum.photos/seed/ex-jimin-face/240/336" },
-  { id: 12, member: "Lisa", group: "BLACKPINK", album: "LALISA", type: "Irregular", image: "https://picsum.photos/seed/ex-lisa-lalisa/240/336" },
-  { id: 13, member: "Ningning", group: "aespa", album: "MY WORLD", type: "Regular", image: "https://picsum.photos/seed/ex-ningning-mw/240/336" },
-  { id: 14, member: "Bangchan", group: "Stray Kids", album: "MAXIDENT", type: "Regular", image: "https://picsum.photos/seed/ex-bc-max/240/336" },
-  { id: 15, member: "Kazuha", group: "LE SSERAFIM", album: "UNFORGIVEN", type: "Regular", image: "https://picsum.photos/seed/ex-kazuha-unfg/240/336" },
-  { id: 16, member: "Rei", group: "IVE", album: "I'VE MINE", type: "Irregular", image: "https://picsum.photos/seed/ex-rei-im/240/336" },
-  { id: 17, member: "Mina", group: "TWICE", album: "READY TO BE", type: "Regular", image: "https://picsum.photos/seed/ex-mina-rtb/240/336" },
-  { id: 18, member: "Yeji", group: "ITZY", album: "KILL MY DOUBT", type: "Irregular", image: "https://picsum.photos/seed/ex-yeji-kmd/240/336" },
-  { id: 19, member: "Chaewon", group: "LE SSERAFIM", album: "ANTIFRAGILE", type: "Regular", image: "https://picsum.photos/seed/ex-cw-ant/240/336" },
-  { id: 20, member: "Sana", group: "TWICE", album: "Formula of Love", type: "Irregular", image: "https://picsum.photos/seed/ex-sana-fol/240/336" },
-  // ... catalog maior no futuro
-]
-
-const STORAGE_OWNED = "kpop-hall-owned-ids"
-const STORAGE_WISHLIST = "kpop-hall-wishlist-ids"
-
-function safeParseIds(value: string | null): number[] {
-  if (!value) return []
-  try {
-    const parsed = JSON.parse(value)
-    if (Array.isArray(parsed)) return parsed.map((n) => Number(n)).filter((n) => Number.isFinite(n))
-    return []
-  } catch {
-    return []
-  }
-}
+type ExplorePhotocard = CatalogPhotocard
 
 function ExploreSkeleton() {
   return (
@@ -100,19 +58,21 @@ function FilterPanel({
   onApply,
   groups,
   albums,
+  catalog,
 }: {
   onClose: () => void
   filters: { group: string; album: string; type: "" | PhotocardType; sort: "recent" | "oldest" | "az" | "za" }
   onApply: (f: { group: string; album: string; type: "" | PhotocardType; sort: "recent" | "oldest" | "az" | "za" }) => void
   groups: string[]
   albums: string[]
+  catalog: ExplorePhotocard[]
 }) {
   const [localFilters, setLocalFilters] = useState(filters)
 
   const visibleAlbums = useMemo(() => {
     if (!localFilters.group) return albums
-    return albums.filter((a) => mockCatalog.some((c) => c.group === localFilters.group && c.album === a))
-  }, [albums, localFilters.group])
+    return albums.filter((a) => catalog.some((c) => c.group === localFilters.group && c.album === a))
+  }, [albums, catalog, localFilters.group])
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
@@ -227,8 +187,8 @@ function FilterPanel({
 }
 
 export function ExplorePage() {
-  const [isLoading, setIsLoading] = useState(true)
-  const [hasError, setHasError] = useState(false)
+  const { data, isLoading, error, refresh } = useCatalog()
+  const hasError = Boolean(error)
 
   const [search, setSearch] = useState("")
   const [showFilters, setShowFilters] = useState(false)
@@ -239,41 +199,35 @@ export function ExplorePage() {
     sort: "recent",
   })
 
-  const [ownedIds, setOwnedIds] = useState<number[]>([])
-  const [wishlistIds, setWishlistIds] = useState<number[]>([])
+  const [ownedIds, setOwnedIds] = useState<string[]>([])
+  const [wishlistIds, setWishlistIds] = useState<string[]>([])
   const [toast, setToast] = useState<string | null>(null)
 
   const [page, setPage] = useState(1)
   const pageSize = 10
 
   useEffect(() => {
-    const owned = safeParseIds(localStorage.getItem(STORAGE_OWNED))
-    const wishlist = safeParseIds(localStorage.getItem(STORAGE_WISHLIST))
-    setOwnedIds(owned.length ? owned : [1, 2, 4])
-    setWishlistIds(wishlist.length ? wishlist : [5, 10])
+    const owned = readStringArray(STORAGE_OWNED)
+    const wishlist = readStringArray(STORAGE_WISHLIST)
+    setOwnedIds(owned)
+    setWishlistIds(wishlist)
   }, [])
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_OWNED, JSON.stringify(ownedIds))
+    writeStringArray(STORAGE_OWNED, ownedIds)
   }, [ownedIds])
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_WISHLIST, JSON.stringify(wishlistIds))
+    writeStringArray(STORAGE_WISHLIST, wishlistIds)
   }, [wishlistIds])
 
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setIsLoading(false)
-      setHasError(false)
-    }, 650)
-    return () => clearTimeout(t)
-  }, [])
+  const catalog = data?.photocards ?? []
 
-  const groups = useMemo(() => [...new Set(mockCatalog.map((c) => c.group))].sort(), [])
-  const albums = useMemo(() => [...new Set(mockCatalog.map((c) => c.album))].sort(), [])
+  const groups = useMemo(() => [...new Set(catalog.map((c) => c.group))].sort(), [catalog])
+  const albums = useMemo(() => [...new Set(catalog.map((c) => c.album))].sort(), [catalog])
 
   const filtered = useMemo(() => {
-    let result = [...mockCatalog]
+    let result = [...catalog]
 
     if (search.trim()) {
       const term = search.toLowerCase()
@@ -304,7 +258,7 @@ export function ExplorePage() {
     }
 
     return result
-  }, [filters, search])
+  }, [catalog, filters, search])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const safePage = Math.min(page, totalPages)
@@ -322,8 +276,8 @@ export function ExplorePage() {
     setTimeout(() => setToast(null), 3000)
   }
 
-  const isOwned = (id: number) => ownedIds.includes(id)
-  const isWishlisted = (id: number) => wishlistIds.includes(id)
+  const isOwned = (id: string) => ownedIds.includes(id)
+  const isWishlisted = (id: string) => wishlistIds.includes(id)
 
   const handleAddToCollection = (card: ExplorePhotocard) => {
     if (isOwned(card.id)) return
@@ -349,11 +303,7 @@ export function ExplorePage() {
           <p className="text-sm text-muted-foreground px-8">Nao foi possivel carregar o catalogo agora.</p>
         </div>
         <button
-          onClick={() => {
-            setHasError(false)
-            setIsLoading(true)
-            setTimeout(() => setIsLoading(false), 600)
-          }}
+          onClick={() => refresh()}
           className="rounded-full bg-[#7B5EA7] px-6 py-2.5 text-sm font-semibold text-white transition-colors active:bg-[#6A4F91]"
         >
           Tentar novamente
@@ -535,6 +485,7 @@ export function ExplorePage() {
           onApply={setFilters}
           groups={groups}
           albums={albums}
+          catalog={catalog}
         />
       )}
 
