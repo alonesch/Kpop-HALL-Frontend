@@ -1,7 +1,6 @@
 import { getToken, getRefreshToken, setRefreshToken } from "./auth"
 
-const DEFAULT_BASE_URL = "http://localhost:5155"
-// const DEFAULT_BASE_URL = "https://kpop-hall-api-672938213176.us-west1.run.app"
+const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5155"
 const API_PREFIX = "/api/v1"
 
 function getBaseUrl() {
