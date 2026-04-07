@@ -88,7 +88,7 @@ function CardContextMenu({
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-muted" />
         <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
           <div className="relative h-12 w-9 rounded-lg overflow-hidden">
-            <Image src={card.image} alt={card.member} fill className="object-cover" crossOrigin="anonymous" />
+            <Image src={card.image ?? "https://picsum.photos/seed/kpop-fallback/240/336"} alt={card.member} fill className="object-cover" crossOrigin="anonymous" />
           </div>
           <div>
             <p className="text-sm font-semibold text-card-foreground">{card.member}</p>
@@ -127,7 +127,7 @@ function PhotocardDetail({ card, onClose, onRemove }: { card: Photocard; onClose
           <X className="h-4 w-4" />
         </button>
         <div className="relative aspect-[5/7] w-full">
-          <Image src={card.image} alt={`${card.member} - ${card.group}`} fill className="object-cover" crossOrigin="anonymous" />
+          <Image src={card.image ?? "https://picsum.photos/seed/kpop-fallback/240/336"} alt={`${card.member} - ${card.group}`} fill className="object-cover" crossOrigin="anonymous" />
         </div>
         <div className="flex flex-col gap-3 p-5">
           <div>
@@ -348,7 +348,7 @@ function AddPhotocardModal({
               return (
                 <div key={card.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
                   <div className="relative h-16 w-12 shrink-0 rounded-xl overflow-hidden">
-                    <Image src={card.image} alt={card.member} fill className="object-cover" crossOrigin="anonymous" />
+                    <Image src={card.image ?? "https://picsum.photos/seed/kpop-fallback/240/336"} alt={card.member} fill className="object-cover" crossOrigin="anonymous" />
                   </div>
                   <div className="flex flex-1 flex-col gap-0.5 min-w-0">
                     <span className="text-sm font-semibold text-card-foreground truncate">{card.member}</span>
@@ -622,7 +622,7 @@ export function CollectionPage() {
           {filteredCards.map((card) => (
             <div key={card.id} className="group flex flex-col rounded-2xl border border-border bg-card overflow-hidden shadow-sm transition-shadow hover:shadow-md">
               <div className="relative aspect-[5/7] w-full">
-                <Image src={card.image} alt={`${card.member} - ${card.group}`} fill className="object-cover" crossOrigin="anonymous" />
+                <Image src={card.image ?? "https://picsum.photos/seed/kpop-fallback/240/336"} alt={`${card.member} - ${card.group}`} fill className="object-cover" crossOrigin="anonymous" />
                 {/* Wishlist toggle */}
                 <button
                   onClick={() => toggleWishlist(card)}

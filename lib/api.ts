@@ -1,7 +1,7 @@
 import { getToken, getRefreshToken, setRefreshToken } from "./auth"
 
-// const DEFAULT_BASE_URL = "http://localhost:5155"
-const DEFAULT_BASE_URL = "https://kpop-hall-api-672938213176.us-west1.run.app"
+const DEFAULT_BASE_URL = "http://localhost:5155"
+// const DEFAULT_BASE_URL = "https://kpop-hall-api-672938213176.us-west1.run.app"
 const API_PREFIX = "/api/v1"
 
 function getBaseUrl() {
@@ -61,7 +61,17 @@ export type GetMeResponse = {
 export type ArtistDto = { id: string; name: string }
 export type AlbumDto = { id: string; title: string; year: number }
 export type MemberDto = { id: string; name: string; artistId: string }
-export type PhotocardDto = { id: string; version: string; memberId: string; isIrregular: boolean }
+export type PhotocardDto = {
+  id: string
+  version: string
+  memberId: string
+  memberName: string
+  artistId: string
+  artistName: string
+  albumTitle: string
+  isIrregular: boolean
+  frontsideImageUrl?: string | null
+}
 export type PhotocardDetailDto = {
   id: string
   version: string

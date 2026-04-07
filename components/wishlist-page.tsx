@@ -136,7 +136,7 @@ export function WishlistPage() {
             {cards.map((card) => (
               <div key={card.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm">
                 <div className="relative h-20 w-14 shrink-0 rounded-xl overflow-hidden">
-                  <Image src={card.image} alt={card.member} fill className="object-cover" crossOrigin="anonymous" />
+                  <Image src={card.image ?? "https://picsum.photos/seed/kpop-fallback/240/336"} alt={card.member} fill className="object-cover" crossOrigin="anonymous" />
                 </div>
                 <div className="flex flex-1 flex-col gap-1 min-w-0">
                   <span className="text-sm font-bold text-card-foreground truncate">{card.member}</span>

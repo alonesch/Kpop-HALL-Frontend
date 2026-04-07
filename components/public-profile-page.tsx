@@ -88,7 +88,7 @@ function Grid({ cards }: { cards: PublicPhotocard[] }) {
       {cards.map((card) => (
         <div key={card.id} className="group flex flex-col rounded-2xl border border-border bg-card overflow-hidden shadow-sm transition-shadow hover:shadow-md">
           <div className="relative aspect-[5/7] w-full">
-            <Image src={card.image} alt={`${card.member} - ${card.group}`} fill className="object-cover" crossOrigin="anonymous" />
+            <Image src={card.image ?? "https://picsum.photos/seed/kpop-fallback/240/336"} alt={`${card.member} - ${card.group}`} fill className="object-cover" crossOrigin="anonymous" />
             <div className={`absolute bottom-2 left-2 rounded-full px-2 py-0.5 text-[9px] font-bold backdrop-blur-sm ${card.type === "Regular" ? "bg-[#7B5EA7]/80 text-white" : "bg-[#9B2D7B]/80 text-white"}`}>
               {card.type}
             </div>

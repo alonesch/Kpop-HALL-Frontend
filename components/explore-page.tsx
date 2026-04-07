@@ -409,7 +409,7 @@ export function ExplorePage() {
                   >
                     <div className="relative aspect-[5/7] w-full">
                       <Image
-                        src={card.image}
+                        src={card.image ?? "https://picsum.photos/seed/kpop-fallback/240/336"}
                         alt={`${card.member} - ${card.group}`}
                         fill
                         className="object-cover"

@@ -39,7 +39,7 @@ export function TrendingPhotocards() {
           >
             <div className="relative h-44 w-full">
               <Image
-                src={card.image}
+                src={card.image ?? "https://picsum.photos/seed/kpop-fallback/240/336"}
                 alt={`${card.member} - ${card.group}`}
                 fill
                 className="object-cover"
