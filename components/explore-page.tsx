@@ -68,11 +68,18 @@ function FilterPanel({
   catalog: ExplorePhotocard[]
 }) {
   const [localFilters, setLocalFilters] = useState(filters)
+  const [albumSearch, setAlbumSearch] = useState("")
 
   const visibleAlbums = useMemo(() => {
     if (!localFilters.group) return albums
     return albums.filter((a) => catalog.some((c) => c.group === localFilters.group && c.album === a))
   }, [albums, catalog, localFilters.group])
+
+  const filteredAlbums = useMemo(() => {
+    const term = albumSearch.trim().toLowerCase()
+    if (!term) return visibleAlbums
+    return visibleAlbums.filter((album) => album.toLowerCase().includes(term))
+  }, [albumSearch, visibleAlbums])
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center">
@@ -107,24 +114,71 @@ function FilterPanel({
             </div>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <label className="text-xs font-semibold text-foreground">Album</label>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setLocalFilters((f) => ({ ...f, album: "" }))}
-                className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${!localFilters.album ? "bg-[#7B5EA7] text-white" : "bg-muted text-muted-foreground"}`}
-              >
-                Todos
-              </button>
-              {visibleAlbums.map((a) => (
-                <button
-                  key={a}
-                  onClick={() => setLocalFilters((f) => ({ ...f, album: a }))}
-                  className={`rounded-full px-3 py-1.5 text-xs font-medium transition-colors ${localFilters.album === a ? "bg-[#7B5EA7] text-white" : "bg-muted text-muted-foreground"}`}
-                >
-                  {a}
-                </button>
-              ))}
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <label className="text-xs font-semibold text-foreground">Album</label>
+              <span className="text-[11px] font-medium text-muted-foreground">
+                {filteredAlbums.length} de {visibleAlbums.length}
+              </span>
+            </div>
+
+            {localFilters.album && (
+              <div className="rounded-2xl border border-[#7B5EA7]/15 bg-[#7B5EA7]/6 px-3 py-2">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-[#7B5EA7]">
+                  Selecionado
+                </p>
+                <div className="mt-1 flex items-center justify-between gap-3">
+                  <p className="text-sm font-medium text-foreground">{localFilters.album}</p>
+                  <button
+                    onClick={() => setLocalFilters((f) => ({ ...f, album: "" }))}
+                    className="shrink-0 text-xs font-semibold text-[#7B5EA7]"
+                  >
+                    Limpar
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                value={albumSearch}
+                onChange={(e) => setAlbumSearch(e.target.value)}
+                placeholder="Buscar album..."
+                className="h-10 w-full rounded-2xl border border-border bg-muted/40 pl-10 pr-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              />
+            </div>
+
+            <div className="rounded-2xl border border-border bg-muted/20 p-2">
+              <div className="max-h-56 overflow-y-auto pr-1">
+                <div className="flex flex-col gap-1.5">
+                  <button
+                    onClick={() => setLocalFilters((f) => ({ ...f, album: "" }))}
+                    className={`flex items-center justify-between rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors ${!localFilters.album ? "bg-[#7B5EA7] text-white" : "text-muted-foreground hover:bg-muted"}`}
+                  >
+                    <span>Todos os albuns</span>
+                    {!localFilters.album && <Check className="h-4 w-4 shrink-0" />}
+                  </button>
+
+                  {filteredAlbums.length === 0 ? (
+                    <div className="rounded-xl px-3 py-5 text-center text-sm text-muted-foreground">
+                      Nenhum album encontrado.
+                    </div>
+                  ) : (
+                    filteredAlbums.map((a) => (
+                      <button
+                        key={a}
+                        onClick={() => setLocalFilters((f) => ({ ...f, album: a }))}
+                        className={`flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-left text-sm transition-colors ${localFilters.album === a ? "bg-[#7B5EA7] text-white" : "text-foreground hover:bg-muted"}`}
+                      >
+                        <span className="truncate">{a}</span>
+                        {localFilters.album === a && <Check className="h-4 w-4 shrink-0" />}
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
