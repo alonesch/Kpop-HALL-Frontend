@@ -1,6 +1,6 @@
 import { getToken, getRefreshToken, setRefreshToken } from "./auth"
 
-const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:5155"
+const DEFAULT_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://localhost:7132"
 const API_PREFIX = "/api/v1"
 
 function getBaseUrl() {
@@ -43,7 +43,7 @@ async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
 export type RegisterUserRequest = { username: string; email: string; password: string }
 export type RegisterUserResponse = { id: string; username: string; email: string }
 
-export type LoginRequest = { email: string; password: string }
+export type LoginRequest = { email: string; username: string; password: string }
 export type LoginResponse = { token: string }
 
 export type RefreshUserRequest = { refreshToken: string }

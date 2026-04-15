@@ -1,38 +1,40 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Mail, Lock } from "lucide-react"
-import { KpopBackground } from "./kpop-background"
-import { KpopLogo } from "./kpop-logo"
-import { loginUser } from "@/lib/api"
-import { setToken } from "@/lib/auth"
+import { useState } from "react";
+import { Mail, Lock } from "lucide-react";
+import { KpopBackground } from "./kpop-background";
+import { KpopLogo } from "./kpop-logo";
+import { loginUser } from "@/lib/api";
+import { setToken } from "@/lib/auth";
 
 interface LoginScreenProps {
-  onLogin: () => void
-  onSignUp: () => void
+  onLogin: () => void;
+  onSignUp: () => void;
 }
 
 export function LoginScreen({ onLogin, onSignUp }: LoginScreenProps) {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError(null)
-    setIsSubmitting(true)
+    e.preventDefault();
+    setError(null);
+    setIsSubmitting(true);
     try {
-      const response = await loginUser({ email, password })
-      setToken(response.token)
-      onLogin()
+      const response = await loginUser({ email, username, password });
+      setToken(response.token);
+      onLogin();
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Nao foi possivel fazer login."
-      setError(message)
+      const message =
+        err instanceof Error ? err.message : "Nao foi possivel fazer login.";
+      setError(message);
     } finally {
-      setIsSubmitting(false)
+      setIsSubmitting(false);
     }
-  }
+  };
 
   return (
     <div className="relative flex min-h-dvh flex-col items-center overflow-hidden">
@@ -41,9 +43,9 @@ export function LoginScreen({ onLogin, onSignUp }: LoginScreenProps) {
       <div className="relative z-10 flex w-full flex-1 flex-col items-center px-6 pt-12 pb-8">
         {/* Logo and welcome */}
         <KpopLogo className="mb-4" />
-        <h1 className="mb-8 text-xl font-semibold text-card text-balance">
-          Seja bem-vindo, Criativo!
-        </h1>
+        {/* <h1 className="mb-8 text-xl font-semibold text-card text-balance">
+          Seja bem-vindo!
+        </h1> */}
 
         {/* Login card */}
         <div className="w-full max-w-[360px] rounded-3xl bg-card p-6 shadow-xl">
@@ -70,9 +72,12 @@ export function LoginScreen({ onLogin, onSignUp }: LoginScreenProps) {
                 <input
                   id="email"
                   type="text"
-                  placeholder="seu.email@exemplo.com"
+                  placeholder="Digite seu email ou usuario"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    setUsername(e.target.value);
+                  }}
                   className="w-full bg-transparent text-sm text-card-foreground placeholder:text-muted-foreground outline-none"
                 />
               </div>
@@ -129,7 +134,12 @@ export function LoginScreen({ onLogin, onSignUp }: LoginScreenProps) {
               className="flex h-11 w-11 items-center justify-center rounded-full border border-border bg-card shadow-sm transition-transform active:scale-95"
               aria-label="Entrar com Google"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
                 <path
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
                   fill="#4285F4"
@@ -153,7 +163,13 @@ export function LoginScreen({ onLogin, onSignUp }: LoginScreenProps) {
               className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm transition-transform active:scale-95"
               aria-label="Entrar com Apple"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                aria-hidden="true"
+              >
                 <path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-1.09-.5-2.08-.48-3.24 0-1.44.62-2.2.44-3.06-.4C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z" />
               </svg>
             </button>
@@ -173,5 +189,5 @@ export function LoginScreen({ onLogin, onSignUp }: LoginScreenProps) {
         </div>
       </div>
     </div>
-  )
+  );
 }
